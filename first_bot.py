@@ -15,13 +15,12 @@ bets = {}
 
 #TODO add a bets loading option
 
-
 def id_gen():
     return ''.join(random.choice(string.ascii_letters) for x in range(5))
     
 class Bet:
     
-    def __init__(self, title, users, pot, wager, id):
+    def __init__(self, title, users, pot, wager):
         self.title = title
         self.users = users
         self.pot = pot
