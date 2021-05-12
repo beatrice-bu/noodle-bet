@@ -1,3 +1,5 @@
 {
-    "python.pythonPath": "D:\\Programming\\Anaconda3\\envs\\discord-bot\\python.exe"
+    "python.pythonPath": "D:\\Programming\\Anaconda3\\envs\\discord-bot\\python.exe",
+    "python.linting.flake8Enabled": true,
+    "python.linting.enabled": true
 }
