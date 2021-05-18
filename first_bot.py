@@ -26,11 +26,30 @@ class Bet:
         self.pot = pot
         self.wager = wager
         self.id = id
-        
+        self.settled = False
         
     def __str__(self):
         return 'Title: {} - Participants: {}. Total Pot: {} noodles. Current wager: {} noodles. Join with code: {}'\
             .format(self.title, self.users, self.pot, self.wager, self.id)
+
+
+        
+    def to_dict(self):
+        
+        
+        template ={
+            
+            "title":str(self.title),
+            "users":str(self.users),
+            "pot":str(self.pot),
+            "wager":str(self.wager),
+            "id":str(self.id)
+            
+            }
+        
+        bet_file_name = str(self.id)
+        with open(bet_file_name + '.json', 'w') as wo:
+            json.dump(template, wo)
     
     
 @client.event
@@ -87,6 +106,7 @@ async def on_message(message):
 
     if message.content.startswith('!wager'):
         #TODO check that user has money to wager
+        
         #TODO take money from user
         #try else except
         try:
@@ -109,7 +129,30 @@ async def on_message(message):
 
 ##TODO add a winner function
 #TODO closes bet
-
+#TODO possibly refactor with-as json read/writes as one function. this wuold affect 
+async def wager(bet,user):
+    wager_amount = bet.wager
+    user_to_check = str(user.id)
+    user_available_noodles = 0
+    with open(user_to_check + 'json', 'r') as user_json:
+    
+        user_data = json.load(user_json)
+        
+        if user_data["noodles"] < wager_amount:
+            
+        user_available_noodles $$$$$$$$$ user_data["noodles"]
+async def declare_winner(bet, user):
+    ...
+    payout = bet.pot
+    winner_id = str(user.id)
+    
+    with open(winner_id + 'json', 'rw') as winner_json:
+    
+        winner_data = json.load(winner_json)
+        winner_data["noodles"] += payout
+        json.dump(winner_data)
+    
+    
 async def register_user(user):
     base_noodles = 100
     recovery = rand(3,3,3)
