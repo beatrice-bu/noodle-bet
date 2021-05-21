@@ -105,15 +105,14 @@ async def on_message(message):
 
 
     if message.content.startswith('!wager'):
-        #TODO check that user has money to wager
         
         #TODO take money from user
-        #try else except
+    
+        join_id = message.content[7:12]
+        print(join_id)
+        bet_to_join = bets[join_id]
+        
         try:
-            join_id = message.content[7:12]
-            print(join_id)
-            bet_to_join = bets[join_id]
-            
             
             
             if message.author.display_name in bet_to_join.users:
@@ -122,25 +121,49 @@ async def on_message(message):
             print(ve)
             await message.channel.send('You are already a participant in this bet!')
         else:
-            bet_to_join.users.append(message.author.display_name)
+            
+            #TODO possibly find way to return current display name from id
             await message.channel.send(f'{message.author.display_name} has joined in on: {bet_to_join.title}. Join in with code: {join_id}!')
         
         
-
+#TODO check if I am in a bet, or if someone else is in a bet
 ##TODO add a winner function
 #TODO closes bet
 #TODO possibly refactor with-as json read/writes as one function. this wuold affect 
-async def wager(bet,user):
+
+
+def wager(bet,user):
+    
     wager_amount = bet.wager
     user_to_check = str(user.id)
     user_available_noodles = 0
-    with open(user_to_check + 'json', 'r') as user_json:
     
-        user_data = json.load(user_json)
-        
-        if user_data["noodles"] < wager_amount:
+    try:
+        if user_to_check in bet.users:
             
-        user_available_noodles $$$$$$$$$ user_data["noodles"]
+            raise ValueError("User is already a participant in the bet.")
+    
+            #probably not a value error
+    except ValueError as already_in_bet:
+        
+        print(already_in_bet)
+        return 'You are already a participant in this bet!'
+    
+    else:
+        
+        with open(user_to_check + 'json', 'r') as user_json:
+
+            user_data = json.load(user_json)
+            
+        if user_data["noodles"] < wager_amount:
+            print(f'{user_to_check} tried to wager a bet, but didnt have enough noodles.')
+            return "I'm sorry, you dont have enough noodles to wager that bet."
+        else:
+            bet.users.append(user_to_check)
+            return f"{user.disaply_name} has joined in on the bet! The pot is now **{bet.pot}!**. Use code **{bet.id}** to join as well."
+            user_available_noodles user_data["noodles"]
+        
+        
 async def declare_winner(bet, user):
     ...
     payout = bet.pot
