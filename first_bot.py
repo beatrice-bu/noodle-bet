@@ -6,6 +6,7 @@ from numpy.random import rand
 import string
 import random
 client = discord.Client()
+import time
 
 with open('token.txt', 'r') as t:
     token = t.read()
@@ -36,15 +37,14 @@ class Bet:
         
     def to_dict(self):
         
-        
         template ={
             
             "title":str(self.title),
             "users":str(self.users),
             "pot":str(self.pot),
             "wager":str(self.wager),
-            "id":str(self.id)
-            
+            "id":str(self.id),
+            "settled":str(self.settled)
             }
         
         bet_file_name = str(self.id)
@@ -60,7 +60,7 @@ async def on_ready():
 async def on_message(message):
     if message.author == client.user:
         return
-
+    
     if message.content.startswith('!hello'):
         print(f'Saying hello to {message.author}...')
         await message.channel.send(f'Hello, {message.author.display_name}.')
@@ -135,33 +135,54 @@ async def on_message(message):
 def wager(bet,user):
     
     wager_amount = bet.wager
+    #initial wager amount
+    
     user_to_check = str(user.id)
+    #the unique id of the user
+    
     user_available_noodles = 0
+    #initializing variable for available noodes
     
     try:
         if user_to_check in bet.users:
-            
+            #if the user is already in bet
             raise ValueError("User is already a participant in the bet.")
     
             #probably not a value error
     except ValueError as already_in_bet:
-        
+        #return error if user already in bet
         print(already_in_bet)
         return 'You are already a participant in this bet!'
     
     else:
         
         with open(user_to_check + 'json', 'r') as user_json:
-
+            #open json attached to user id
             user_data = json.load(user_json)
-            
-        if user_data["noodles"] < wager_amount:
+            #load json data attached to user id
+            user_available_noodles += user_data["noodles"]
+            #load the user's available noodles to available noodles
+        
+        
+        if user_available_noodles < wager_amount:
+        #if user does not have enough noodles
             print(f'{user_to_check} tried to wager a bet, but didnt have enough noodles.')
+            #then let them know lol
             return "I'm sorry, you dont have enough noodles to wager that bet."
+        
+        
         else:
+        #if they DO have enough noodles
             bet.users.append(user_to_check)
+            #add user to bet's ledger
+            
+            user_data["noodles"] -= wager_amount
+            #remove noodles from user
+            
+            with open(user_to_check + '.json', 'w') as user_json:
+                json.dump(user_json)
             return f"{user.disaply_name} has joined in on the bet! The pot is now **{bet.pot}!**. Use code **{bet.id}** to join as well."
-            user_available_noodles user_data["noodles"]
+            
         
         
 async def declare_winner(bet, user):
@@ -207,5 +228,25 @@ def noodles(user):
 
     return str(loaded_noodles)
 
-
+#universal read-write because we have so many json opens 
+def readWrite(output_name: str, action: str, data: dict =None):
+    with open(output_name + '.json', action) as json_data:
+        if action == 'r':
+            return json.load(json_data)
+        elif action == 'w':
+            try:
+                if data == None:
+                    raise ValueError("No dict given for write out action.")
+            except ValueError as no_data_given:
+                print(no_data_given)
+                return
+            else:
+                json.dump(data, json_data)
+            
+async def activeBackup():
+    #for bet in bets:
+        #write out bets 
+    #for bet in wo_bets:
+        #load in bets
+    ...
 client.run(token)
