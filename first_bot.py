@@ -121,7 +121,7 @@ async def on_message(message):
             print(ve)
             await message.channel.send('You are already a participant in this bet!')
         else:
-            
+            createWager()
             #TODO possibly find way to return current display name from id
             await message.channel.send(f'{message.author.display_name} has joined in on: {bet_to_join.title}. Join in with code: {join_id}!')
         
@@ -131,8 +131,10 @@ async def on_message(message):
 #TODO closes bet
 #TODO possibly refactor with-as json read/writes as one function. this wuold affect 
 
-
-def wager(bet,user):
+def createBet():
+    ...
+    
+def createWager(bet,user):
     
     wager_amount = bet.wager
     #initial wager amount
