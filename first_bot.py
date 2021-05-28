@@ -16,31 +16,119 @@ bets = {}
 
 #TODO add a bets loading option
 
+
+
+def transaction_check(function):
+
+    def check_wrapper(bet_id, bet_amount, bet_title, bet_user):
+        
+        bet_amount = int(bet_amount)
+        user_id = str(bet_user.id)
+        print(
+            f'Betting user ID: {user_id}'
+        )
+        user_name = str(bet_user.display_name)
+        
+        #checking if user has enough noodles
+        
+        with open(user_id + '.json', 'r') as user_json:
+            #open json attached to user id
+            print('Opening users .json data...')
+            user_data = json.load(user_json)
+            #load json data attached to user id
+            user_available_noodles = user_data["noodles"]
+            print(f'User has {user_available_noodles} noodles...')
+            #load the user's available noodles to available noodles
+        
+        if user_available_noodles < bet_amount:
+        #if user does not have enough noodles
+            #then let them know lol
+            raise Exception('User tried to wager a bet, but didnt have enough noodles.')
+        
+        
+        else:
+        #if they DO have enough noodles
+        
+            #create bet, without any users
+            print(
+                f'User has enough noodles. Creating bet {bet_id}'
+            )
+            function(bet_id, bet_amount, bet_title)
+            #add current user to bet. this 
+            
+            bets[bet_id].users_id.append(user_id)
+            bets[bet_id].users_name.append(user_name)
+            print(
+                f'Adding user to bet ledger'
+            )
+            print(
+                f'Adding wager to pot. {bets[bet_id].pot} + {bet_amount} = {bets[bet_id].pot + bet_amount}'
+            )
+            #adding wager to pot
+            bets[bet_id].pot += bet_amount
+            
+            #add user to bet's ledger
+            print(
+                f'Taking {bet_amount} noodles from user. {user_available_noodles} - {bet_amount} = {user_available_noodles - bet_amount}'
+            )
+            #remove noodles from user
+            user_data["noodles"] -= bet_amount
+            
+            print(
+                f'Writing new noodle quantity to file...'
+            )
+            with open(user_id + '.json', 'w') as user_json:
+                json.dump(user_data, user_json)
+            
+            print(
+                'TRANSACTION COMPLETE'
+            )
+            
+            return 'Ding!'
+    return check_wrapper
+
 def id_gen():
-    return ''.join(random.choice(string.ascii_letters) for x in range(5))
+    
+    #pull new id
+    print(
+        f'Acquiring new ID for bet..'
+    )
+    possible_id = ''.join(random.choice(string.ascii_letters) for x in range(5))
+    '''
+    NOT WORKING YET
+    
+    if bets[possible_id] not in globals():
+        #try again
+        possible_id = ''.join(random.choice(string.ascii_letters) for x in range(5))
+        print(
+            f'Using id {possible_id}...'
+        )'''
+    return possible_id
     
 class Bet:
     
-    def __init__(self, title, users, pot, wager):
+    def __init__(self, title, wager, bet_id):
         self.title = title
-        self.users = users
-        self.pot = pot
+        self.users_id = []
+        self.users_name = []
+        self.pot = 0
         self.wager = wager
-        self.id = id
+        self.bet_id = bet_id
         self.settled = False
         
     def __str__(self):
-        return 'Title: {} - Participants: {}. Total Pot: {} noodles. Current wager: {} noodles. Join with code: {}'\
-            .format(self.title, self.users, self.pot, self.wager, self.id)
+        return 'Title: {} - Participants: {}. Total Pot: **{} noodles.** Current wager: {} noodles. Join with code: **{}**'\
+            .format(self.title, self.users_name, self.pot, self.wager, self.bet_id)
 
 
         
-    def to_dict(self):
+    def to_json(self):
         
         template ={
             
             "title":str(self.title),
-            "users":str(self.users),
+            "users_id":str(self.users_id),
+            "users_name":str(self.users_name),
             "pot":str(self.pot),
             "wager":str(self.wager),
             "id":str(self.id),
@@ -55,7 +143,7 @@ class Bet:
 @client.event
 async def on_ready():
     print("We have logged in as {0.user}".format(client))
-
+    
 @client.event
 async def on_message(message):
     if message.author == client.user:
@@ -89,13 +177,26 @@ async def on_message(message):
         #TODO actually take noodles from user
         #TODO check if user has money
         #try else except for that
-        new_id = id_gen()
-        bet_text = message.content
-        bet_amount = bet_text.split(" ")[-1]
-        bet_title = ''.join([i for i in bet_text[5:] if not i.isdigit()])
         
-        await message.channel.send(f'NEW BET: **{bet_amount} noodles** => *"{bet_title}"*. Use code "{new_id}" to join in bet.')
-        bets[new_id] = bets.get(new_id, Bet(title=bet_title, users=[message.author.display_name], pot=bet_amount, wager=bet_amount, id=new_id))
+        fresh_id = id_gen()
+        bet_text = message.content
+        fresh_bet_amount = bet_text.split(" ")[-1]
+        fresh_bet_title = ''.join([i for i in bet_text[5:] if not i.isdigit()])
+        fresh_bet_user = message.author
+        
+        print(
+            f'{fresh_bet_user} is attempting to make bet {fresh_bet_title} for {fresh_bet_amount}...'
+            )
+
+        try:
+            await message.channel.send(createBet(fresh_id, fresh_bet_amount, fresh_bet_title, fresh_bet_user))
+        except Exception as ex:
+            print(ex)
+            await message.channel.send('Bet creation failed. :( Not enough Noodles.')
+        else:
+            await message.channel.send(f'NEW BET: **{fresh_bet_amount} noodles** => *"{fresh_bet_title}"*. Use code "{fresh_id}" to join in bet.')
+    
+        
         
         
     if message.content.startswith('!openbets'):
@@ -107,23 +208,15 @@ async def on_message(message):
     if message.content.startswith('!wager'):
         
         #TODO take money from user
-    
+
+        wagering_user = message.author
         join_id = message.content[7:12]
-        print(join_id)
         bet_to_join = bets[join_id]
         
-        try:
-            
-            
-            if message.author.display_name in bet_to_join.users:
-                raise ValueError("User is already a participant in the bet.")
-        except ValueError as ve:
-            print(ve)
-            await message.channel.send('You are already a participant in this bet!')
-        else:
-            createWager()
-            #TODO possibly find way to return current display name from id
-            await message.channel.send(f'{message.author.display_name} has joined in on: {bet_to_join.title}. Join in with code: {join_id}!')
+        await message.channel.send(
+            createWager(bet_to_join, bet_to_join.wager, bet_to_join.title, wagering_user)
+            )
+    
         
         
 #TODO check if I am in a bet, or if someone else is in a bet
@@ -131,19 +224,21 @@ async def on_message(message):
 #TODO closes bet
 #TODO possibly refactor with-as json read/writes as one function. this wuold affect 
 
-def createBet():
-    ...
+@transaction_check
+def createBet(new_id, bet_amount, bet_title):
+    bets[new_id] = bets.get(new_id, Bet(title=bet_title, wager=bet_amount, bet_id=new_id))
+        
+
+@transaction_check
+def createWager(bet_id, bet_amount, bet_title, bet_user):
     
-def createWager(bet,user):
-    
+    bet = bets[bet_id]
     wager_amount = bet.wager
     #initial wager amount
     
     user_to_check = str(user.id)
     #the unique id of the user
     
-    user_available_noodles = 0
-    #initializing variable for available noodes
     
     try:
         if user_to_check in bet.users:
@@ -157,33 +252,7 @@ def createWager(bet,user):
         return 'You are already a participant in this bet!'
     
     else:
-        
-        with open(user_to_check + 'json', 'r') as user_json:
-            #open json attached to user id
-            user_data = json.load(user_json)
-            #load json data attached to user id
-            user_available_noodles += user_data["noodles"]
-            #load the user's available noodles to available noodles
-        
-        
-        if user_available_noodles < wager_amount:
-        #if user does not have enough noodles
-            print(f'{user_to_check} tried to wager a bet, but didnt have enough noodles.')
-            #then let them know lol
-            return "I'm sorry, you dont have enough noodles to wager that bet."
-        
-        
-        else:
-        #if they DO have enough noodles
-            bet.users.append(user_to_check)
-            #add user to bet's ledger
-            
-            user_data["noodles"] -= wager_amount
-            #remove noodles from user
-            
-            with open(user_to_check + '.json', 'w') as user_json:
-                json.dump(user_json)
-            return f"{user.disaply_name} has joined in on the bet! The pot is now **{bet.pot}!**. Use code **{bet.id}** to join as well."
+        return f"{user.disaply_name} has joined in on the bet! The pot is now **{bet.pot}!**. Use code **{bet.id}** to join as well."
             
         
         
@@ -252,3 +321,4 @@ async def activeBackup():
         #load in bets
     ...
 client.run(token)
+
